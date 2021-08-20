@@ -12,17 +12,13 @@ source:
   sha256: {{ sha256 }}
 
 build:
-  number: 0
-  skip: true  # [win and vc<14]
+  number: 1
 
 outputs:
   - name: llvm-openmp
     script: build-llvm-openmp.sh  # [not win]
-    script: bld-llvm-openmp.bat  # [win]
     build:
       ignore_run_exports:
-        - libgcc-ng
-        - libstdcxx-ng
         - _openmp_mutex
       run_exports:
         strong:
@@ -31,34 +27,31 @@ outputs:
           - _openmp_mutex * *_llvm            # [linux]
     requirements:
       build:
+        # Use pins to control cos6/cos7 match
+        - libgcc-ng  {{ libgcc }}
+        - libstdcxx-ng  {{ libstdcxx }}
         - {{ compiler('cxx') }}  # [unix]
-        - vs2017_{{ target_platform }}  # [win]
-        - cmake
-        - make  # [unix]
+        - cmake  {{ cmake }}
+        - make  {{ make }}       # [unix]
         - perl
-        - ninja  # [win]
       host:
-        - llvmdev {{ version }}|{{ version }}.*
+        # Use pins to control cos6/cos7 match
+        - libgcc-ng  {{ libgcc }}
+        - libstdcxx-ng  {{ libstdcxx }}
+        - llvmdev {{ version }}
       run_constrained:
-        - clangdev {{ version }}|{{ version }}.*
-        - llvmdev {{ version }}|{{ version }}.*
-        - openmp {{ version }}|{{ version }}.*
+        - clangdev {{ version }}
+        - llvmdev {{ version }}
+        - openmp {{ version }}
     test:
       requires:
-        - clangxx
+        - clangxx {{ version }}
         - {{ compiler('cxx') }}  # [unix]
-        - vs2017_{{ target_platform }}  # [win]
       commands:
-        - if not exist %LIBRARY_BIN%\\libomp.dll exit 1   # [win]
         - test -f $PREFIX/lib/libomp.so                   # [linux]
-        - test -f $PREFIX/lib/libomp.dylib                # [osx]
-        - if not exist %LIBRARY_LIB%\\libomp.lib exit 1   # [win]
-        - if not exist %LIBRARY_INC%\\omp.h exit 1        # [win]
         - test -f $PREFIX/include/omp.h                   # [unix]
         - $PREFIX/bin/clang -v -fopenmp -I$PREFIX/include -L$PREFIX/lib -Wl,-rpath,$PREFIX/lib omp_hello.c -o omp_hello  # [not win]
-        - '%LIBRARY_BIN%\clang -v -fopenmp -I%LIBRARY_INC% -L%LIBRARY_LIB% omp_hello.c -o omp_hello.exe'   # [win]
         - ./omp_hello            # [unix]
-        - '%cd%\omp_hello.exe'   # [win]
       files:
         - omp_hello.c
 
@@ -70,9 +63,4 @@ about:
 
 extra:
   recipe-maintainers:
-    - inducer
-    - jakirkham
-    - yesimon
-    - isuruf
-    - beckermr
-    - katietz
+    - open-ce/open-ce-dev-team
